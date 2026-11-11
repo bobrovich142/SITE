@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VORTEX — Digital Platform</title>
+<link rel="icon" href="сайт/logo.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #070a12;
+  --panel: #0d1220;
+  --panel2: #111a2b;
+  --blue: #3478ff;
+  --cyan: #43c6ff;
+  --text: #f3f6ff;
+  --muted: #8995ad;
+  --border: rgba(135,165,220,.13);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 75% 5%, rgba(32,94,205,.14), transparent 38%),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, Arial, sans-serif;
+  min-height: 100vh;
+}
+
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+
+.hidden { display: none !important; }
+
+/* AUTH */
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 25px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(38,105,255,.18), transparent 35%),
+    #070a12;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 38px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(13,18,32,.94);
+  box-shadow: 0 25px 90px rgba(0,0,0,.45);
+}
+
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 18px;
+}
+
+.auth-card h1 {
+  text-align: center;
+  font-size: 28px;
+  margin: 0 0 8px;
+  letter-spacing: 3px;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 28px;
+}
+
+.field { margin-bottom: 17px; }
+
+.field label {
+  display: block;
+  color: #aebbd2;
+  font-size: 12px;
+  margin-bottom: 9px;
+}
+
+.field input, .field select, .input {
+  width: 100%;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #080e1b;
+  color: white;
+  outline: none;
+  transition: .2s;
+}
+
+.field input:focus, .input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(52,120,255,.12);
+}
+
+.primary-btn {
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #2868ed, #399cff);
+  color: white;
+  padding: 14px 20px;
+  font-weight: 700;
+  transition: .2s;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 9px 25px rgba(48,117,255,.25);
+}
+
+.auth-card .primary-btn { width: 100%; margin-top: 7px; }
+
+.auth-switch {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 23px;
+}
+
+.auth-switch button {
+  color: #69a7ff;
+  background: none;
+  border: 0;
+  font-weight: 700;
+}
+
+.message {
+  font-size: 12px;
+  color: #ff8c9a;
+  min-height: 18px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* APP LAYOUT */
+
+.app { min-height: 100vh; }
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 245px;
+  padding: 27px 17px;
+  background: rgba(9,14,25,.96);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 35px;
+}
+
+.brand img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.brand strong {
+  font-size: 18px;
+  letter-spacing: 3px;
+}
+
+.brand small {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+.nav-label {
+  color: #5e6b84;
+  font-size: 10px;
+  letter-spacing: 1.7px;
+  padding: 0 13px;
+  margin-bottom: 12px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav button {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #9ba8c0;
+  text-align: left;
+  font-size: 13px;
+  transition: .2s;
+}
+
+.nav button:hover {
+  background: rgba(54,110,220,.09);
+  color: white;
+}
+
+.nav button.active {
+  color: white;
+  background: linear-gradient(100deg, rgba(43,104,230,.22), rgba(43,104,230,.06));
+  border-color: rgba(73,137,255,.2);
+}
+
+.nav-icon {
+  width: 19px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding: 18px 8px 0;
+}
+
+.mini-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.avatar {
+  width: 37px;
+  height: 37px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2765df, #37b6ff);
+  font-weight: 800;
+}
+
+.mini-user strong {
+  font-size: 12px;
+  display: block;
+  max-width: 135px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-user small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.main {
+  margin-left: 245px;
+  padding: 30px 42px 60px;
+  max-width: 1600px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 35px;
+}
+
+.breadcrumb {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status {
+  color: #70dca5;
+  font-size: 11px;
+  padding: 8px 12px;
+  border: 1px solid rgba(80,220,150,.17);
+  background: rgba(50,180,110,.07);
+  border-radius: 30px;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+.page-heading { margin-bottom: 25px; }
+
+.page-heading h2 {
+  font-size: 25px;
+  margin: 0 0 8px;
+}
+
+.page-heading p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* HOME WELCOME */
+
+.welcome {
+  min-height: 470px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 55px;
+  border: 1px solid rgba(89,145,255,.2);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 82% 50%, rgba(35,113,255,.27), transparent 42%),
+    linear-gradient(115deg, #101a30 0%, #0c1425 55%, #0a1020 100%);
+  box-shadow: 0 25px 80px rgba(0,0,0,.22);
+}
+
+.welcome::before {
+  content: "";
+  position: absolute;
+  width: 440px;
+  height: 440px;
+  border: 1px solid rgba(85,155,255,.13);
+  border-radius: 50%;
+  right: -85px;
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow:
+    0 0 0 35px rgba(60,130,255,.025),
+    0 0 0 75px rgba(60,130,255,.025),
+    0 0 0 120px rgba(60,130,255,.02);
+}
+
+.welcome::after {
+  content: "V";
+  position: absolute;
+  right: 95px;
+  top: 50%;
+  transform: translateY(-54%);
+  font-size: 290px;
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(87,153,255,.075);
+  pointer-events: none;
+}
+
+.welcome-content {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+}
+
+.eyebrow {
+  color: #76b5ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  margin-bottom: 23px;
+}
+
+.welcome h1 {
+  font-size: clamp(36px, 5vw, 61px);
+  line-height: 1.08;
+  letter-spacing: -2.5px;
+  margin: 0 0 23px;
+  max-width: 650px;
+}
+
+.welcome h1 span {
+  background: linear-gradient(90deg, #5b9dff, #65d4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.welcome-description {
+  color: #aab8d1;
+  font-size: 14px;
+  line-height: 1.9;
+  max-width: 590px;
+  margin: 0 0 30px;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.secondary-btn {
+  border: 1px solid rgba(150,180,230,.2);
+  border-radius: 11px;
+  padding: 13px 19px;
+  color: #dce8ff;
+  background: rgba(255,255,255,.035);
+  font-weight: 600;
+}
+
+.secondary-btn:hover { background: rgba(255,255,255,.08); }
+
+.home-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 17px;
+  margin-top: 20px;
+}
+
+.info-card, .panel {
+  background: linear-gradient(145deg, rgba(17,26,44,.95), rgba(12,18,31,.95));
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  padding: 23px;
+}
+
+.info-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.info-card h3 {
+  font-size: 16px;
+  margin: 10px 0 7px;
+}
+
+.info-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* PROFILE AND PANELS */
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 17px;
+}
+
+.profile-card {
+  padding: 27px;
+  background: linear-gradient(145deg, #121e34, #0d1423);
+  border: 1px solid var(--border);
+  border-radius: 17px;
+}
+
+.profile-avatar {
+  width: 65px;
+  height: 65px;
+  border-radius: 19px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #2765df, #37b6ff);
+  margin-bottom: 17px;
+}
+
+.profile-card h3 { margin: 0 0 6px; }
+.profile-card p { color: var(--muted); font-size: 12px; margin: 0; }
+
+.data-row {
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-row:last-child { border-bottom: 0; }
+
+.data-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+
+.data-row strong {
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.balance-value {
+  font-size: 30px !important;
+  color: #76b5ff;
+}
+
+.form-panel {
+  max-width: 570px;
+  padding: 27px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 17px;
+}
+
+.form-panel h3 { margin: 0 0 9px; font-size: 17px; }
+.form-panel > p { color: var(--muted); font-size: 12px; line-height: 1.7; margin-bottom: 24px; }
+
+.form-panel .field { margin-top: 19px; }
+
+.form-panel .primary-btn { margin-top: 5px; }
+
+.notice {
+  color: #91baff;
+  background: rgba(52,120,255,.08);
+  border: 1px solid rgba(52,120,255,.17);
+  padding: 13px 15px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 18px;
+}
+
+.success-message {
+  color: #72dfac;
+  font-size: 12px;
+  min-height: 18px;
+  margin-top: 12px;
+}
+
+.currency-select {
+  max-width: 200px;
+  color: white;
+  background: #080e1b;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.market-placeholder {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border: 1px dashed rgba(115,151,210,.22);
+  border-radius: 18px;
+  background: rgba(15,23,39,.55);
+  padding: 30px;
+}
+
+.market-placeholder .symbol {
+  font-size: 38px;
+  margin-bottom: 14px;
+}
+
+.market-placeholder h3 { margin: 0 0 9px; }
+.market-placeholder p { color: var(--muted); font-size: 13px; }
+
+.logout-btn {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: #8795ad;
+  text-align: left;
+  padding: 14px 8px 0;
+  font-size: 12px;
+}
+
+.logout-btn:hover { color: #ff8998; }
+
+@media(max-width: 850px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+    padding: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand { padding: 0 7px 14px; }
+
+  .nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+
+  .nav-label, .sidebar-bottom { display: none; }
+
+  .nav button {
+    width: auto;
+    flex-shrink: 0;
+    padding: 10px 12px;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 22px 17px 45px;
+  }
+
+  .welcome {
+    min-height: 430px;
+    padding: 30px;
+  }
+
+  .welcome::after {
+    right: -10px;
+    font-size: 210px;
+  }
+}
+
+@media(max-width: 560px) {
+  .home-bottom, .profile-grid { grid-template-columns: 1fr; }
+  .welcome { padding: 25px 21px; min-height: 460px; }
+  .welcome h1 { font-size: 39px; }
+  .welcome-description { font-size: 13px; }
+  .welcome::after { right: -45px; font-size: 170px; }
+  .topbar { margin-bottom: 24px; }
+  .auth-card { padding: 27px 22px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- AUTH -->
+<section class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <img src="сайт/logo.png" class="auth-logo" alt="VORTEX">
+    <h1>VORTEX</h1>
+    <div class="auth-subtitle">YOUR DIGITAL SPACE</div>
+
+    <div id="loginForm">
+      <div class="field">
+        <label>Имя аккаунта</label>
+        <input id="loginUsername" type="text" placeholder="Введите имя" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Пароль</label>
+        <input id="loginPassword" type="password" placeholder="Введите пароль" autocomplete="current-password">
+      </div>
+      <button class="primary-btn" onclick="login()">Войти в аккаунт</button>
+      <div class="auth-switch">
+        Нет аккаунта?
+        <button onclick="showRegister()">Создать аккаунт</button>
+      </div>
+    </div>
+
+    <div id="registerForm" class="hidden">
+      <div class="field">
+        <label>Имя аккаунта</label>
+        <input id="registerUsername" type="text" placeholder="Придумайте имя" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Пароль</label>
+        <input id="registerPassword" type="password" placeholder="Придумайте пароль" autocomplete="new-password">
+      </div>
+      <button class="primary-btn" onclick="register()">Зарегистрироваться</button>
+      <div class="auth-switch">
+        Уже есть аккаунт?
+        <button onclick="showLogin()">Войти</button>
+      </div>
+    </div>
+    <div class="message" id="authMessage"></div>
+  </div>
+</section>
+
+<!-- APP -->
+<div class="app hidden" id="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="сайт/logo.png" alt="VORTEX">
+      <div>
+        <strong>VORTEX</strong>
+        <small>DIGITAL PLATFORM</small>
+      </div>
+    </div>
+
+    <div class="nav-label">МЕНЮ ПЛАТФОРМЫ</div>
+
+    <nav class="nav">
+      <button class="active" data-page="home" onclick="navigate('home',this)">
+        <span class="nav-icon">⌂</span> Главная
+      </button>
+      <button data-page="market" onclick="navigate('market',this)">
+        <span class="nav-icon">▦</span> Маркет
+      </button>
+      <button data-page="topup" onclick="navigate('topup',this)">
+        <span class="nav-icon">＋</span> Пополнить
+      </button>
+      <button data-page="profile" onclick="navigate('profile',this)">
+        <span class="nav-icon">◉</span> Профиль
+      </button>
+      <button data-page="settings" onclick="navigate('settings',this)">
+        <span class="nav-icon">⚙</span> Настройки
+      </button>
+      <button data-page="about" onclick="navigate('about',this)">
+        <span class="nav-icon">ⓘ</span> О нас
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="mini-user">
+        <div class="avatar" id="sidebarAvatar">V</div>
+        <div>
+          <strong id="sidebarUsername">Пользователь</strong>
+          <small>Аккаунт VORTEX</small>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">↪ Выйти из аккаунта</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="breadcrumb" id="breadcrumb">VORTEX / Главная</div>
+      <div class="topbar-right">
+        <span class="status">● Система активна</span>
+      </div>
+    </header>
+
+    <!-- HOME -->
+    <section class="page active" id="page-home">
+      <div class="welcome">
+        <div class="welcome-content">
+          <div class="eyebrow">WELCOME TO VORTEX</div>
+          <h1>ТВОЁ НОВОЕ<br>ПРОСТРАНСТВО <span>ВОЗМОЖНОСТЕЙ.</span></h1>
+          <p class="welcome-description">
+            Добро пожаловать в VORTEX — современную цифровую платформу,
+            созданную для удобного взаимодействия с цифровыми сервисами.
+            Здесь всё организовано в одном пространстве: твой профиль,
+            баланс, настройки аккаунта и разделы платформы. Мы стремимся
+            сделать каждый элемент понятным, быстрым и комфортным в использовании.
+            Освойся, настрой аккаунт под себя и исследуй возможности VORTEX.
+          </p>
+          <div class="welcome-actions">
+            <button class="primary-btn" onclick="navigateByName('profile')">Мой профиль →</button>
+            <button class="secondary-btn" onclick="navigateByName('about')">О платформе</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-bottom">
+        <div class="info-card">
+          <small>ТВОЙ АККАУНТ</small>
+          <h3 id="homeUsername">Добро пожаловать</h3>
+          <p>Управляй данными профиля и настройками своего аккаунта в одном месте.</p>
+        </div>
+        <div class="info-card">
+          <small>ТВОЙ БАЛАНС</small>
+          <h3 id="homeBalance">0 ₽</h3>
+          <p>Выбери удобную валюту и следи за отображением баланса в профиле.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MARKET -->
+    <section class="page" id="page-market">
+      <div class="page-heading">
+        <h2>Маркет</h2>
+        <p>Раздел цифровых предложений VORTEX.</p>
+      </div>
+      <div class="market-placeholder">
+        <div>
+          <div class="symbol">▦</div>
+          <h3>Маркет в разработке</h3>
+          <p>Мы работаем над этим разделом. Он станет доступен позже.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOPUP -->
+    <section class="page" id="page-topup">
+      <div class="page-heading">
+        <h2>Пополнение баланса</h2>
+        <p>Выбери валюту и укажи сумму.</p>
+      </div>
+
+      <div class="form-panel">
+        <h3>Пополнить баланс</h3>
+        <p>Укажи желаемую сумму пополнения. Платёжные способы пока не подключены.</p>
+
+        <div class="data-row">
+          <small>Текущий баланс</small>
+          <strong class="balance-value" id="topupBalance">0 ₽</strong>
+        </div>
+
+        <div class="field">
+          <label>Валюта</label>
+          <select id="topupCurrency" class="input" onchange="changeCurrency(this.value)">
+            <option value="RUB">RUB — Российский рубль</option>
+            <option value="USD">$ — Доллар США</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Сумма пополнения</label>
+          <input id="topupAmount" type="number" min="1" step="0.01" placeholder="Введите сумму">
+        </div>
+
+        <button class="primary-btn" onclick="requestTopup()">Пополнить баланс</button>
+        <div class="success-message" id="topupMessage"></div>
+
+        <div class="notice">
+          Пополнение пока недоступно: платёжные способы ещё не подключены.
+          Нажатие кнопки не списывает деньги и не изменяет баланс.
+        </div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="page" id="page-profile">
+      <div class="page-heading">
+        <h2>Мой профиль</h2>
+        <p>Информация о твоём аккаунте VORTEX.</p>
+      </div>
+
+      <div class="profile-grid">
+        <div class="profile-card">
+          <div class="profile-avatar" id="profileAvatar">V</div>
+          <h3 id="profileUsername">Пользователь</h3>
+          <p>Участник VORTEX</p>
+          <div class="data-row" style="margin-top:20px">
+            <small>ID аккаунта</small>
+            <strong id="profileId">—</strong>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="data-row">
+            <small>Баланс</small>
+            <strong class="balance-value" id="profileBalance">0 ₽</strong>
+          </div>
+          <div class="data-row">
+            <small>Выбранная валюта</small>
+            <strong id="profileCurrency">RUB</strong>
+          </div>
+          <div class="data-row">
+            <small>Платформа</small>
+            <strong>VORTEX</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="page-settings">
+      <div class="page-heading">
+        <h2>Настройки</h2>
+        <p>Настрой свой аккаунт так, как удобно тебе.</p>
+      </div>
+
+      <div class="form-panel">
+        <h3>Имя аккаунта</h3>
+        <p>Ты можешь изменить отображаемое имя своего аккаунта. Для входа после изменения используй новое имя.</p>
+
+        <div class="field">
+          <label>Новое имя</label>
+          <input id="newUsername" type="text" maxlength="24" placeholder="Введите новое имя">
+        </div>
+
+        <button class="primary-btn" onclick="changeUsername()">Сохранить имя</button>
+        <div class="success-message" id="usernameMessage"></div>
+
+        <div class="field" style="margin-top:27px">
+          <label>Валюта баланса</label>
+          <select class="input" id="settingsCurrency" onchange="changeCurrency(this.value)">
+            <option value="RUB">RUB — Российский рубль</option>
+            <option value="USD">$ — Доллар США</option>
+          </select>
+        </div>
+        <div class="notice">
+          Выбор валюты меняет отображение баланса. Конвертация между валютами не производится.
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="page" id="page-about">
+      <div class="page-heading">
+        <h2>О VORTEX</h2>
+        <p>Узнай больше о нашей платформе.</p>
+      </div>
+
+      <div class="form-panel" style="max-width:760px">
+        <div class="eyebrow">ABOUT THE PLATFORM</div>
+        <h3 style="font-size:25px;margin-bottom:17px">VORTEX — цифровое пространство.</h3>
+        <p style="font-size:14px;line-height:1.9;color:#aab8d1">
+          VORTEX — цифровая платформа, объединяющая современные цифровые
+          возможности в одном месте. Наша цель — сделать использование
+          платформы удобным, быстрым и понятным.
+          <br><br>
+          Мы стремимся создать комфортное пространство, в котором пользователь
+          может управлять своим аккаунтом, просматривать информацию профиля
+          и пользоваться доступными разделами платформы.
+        </p>
+        <div class="notice">VORTEX · YOUR DIGITAL SPACE</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const USERS_KEY = "vortex_users";
+const SESSION_KEY = "vortex_session";
+
+let currentUser = null;
+
+function getUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function makeId() {
+  if (window.crypto && crypto.randomUUID) {
+    return "VX-" + crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase();
+  }
+  return "VX-" + Date.now().toString(36).toUpperCase() +
+    Math.random().toString(36).slice(2, 7).toUpperCase();
+}
+
+function showRegister() {
+  document.getElementById("loginForm").classList.add("hidden");
+  document.getElementById("registerForm").classList.remove("hidden");
+  document.getElementById("authMessage").textContent = "";
+}
+
+function showLogin() {
+  document.getElementById("registerForm").classList.add("hidden");
+  document.getElementById("loginForm").classList.remove("hidden");
+  document.getElementById("authMessage").textContent = "";
+}
+
+function register() {
+  const username = document.getElementById("registerUsername").value.trim();
+  const password = document.getElementById("registerPassword").value;
+  const message = document.getElementById("authMessage");
+
+  if (username.length < 3) {
+    message.textContent = "Имя должно содержать минимум 3 символа.";
+    return;
+  }
+
+  if (password.length < 4) {
+    message.textContent = "Пароль должен содержать минимум 4 символа.";
+    return;
+  }
+
+  const users = getUsers();
+
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+    message.textContent = "Это имя уже занято.";
+    return;
+  }
+
+  const user = {
+    id: makeId(),
+    username,
+    password,
+    balances: { RUB: 0, USD: 0 },
+    currency: "RUB"
+  };
+
+  users.push(user);
+  saveUsers(users);
+
+  currentUser = user;
+  localStorage.setItem(SESSION_KEY, user.id);
+  openApp();
+}
+
+function login() {
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const message = document.getElementById("authMessage");
+
+  const user = getUsers().find(u =>
+    u.username.toLowerCase() === username.toLowerCase() &&
+    u.password === password
+  );
+
+  if (!user) {
+    message.textContent = "Неверное имя аккаунта или пароль.";
+    return;
+  }
+
+  if (!user.balances) user.balances = { RUB: 0, USD: 0 };
+  if (typeof user.balances.RUB !== "number") user.balances.RUB = 0;
+  if (typeof user.balances.USD !== "number") user.balances.USD = 0;
+  if (!["RUB", "USD"].includes(user.currency)) user.currency = "RUB";
+
+  currentUser = user;
+  saveCurrentUser();
+  localStorage.setItem(SESSION_KEY, user.id);
+  openApp();
+}
+
+function saveCurrentUser() {
+  if (!currentUser) return;
+  const users = getUsers();
+  const index = users.findIndex(u => u.id === currentUser.id);
+  if (index !== -1) {
+    users[index] = currentUser;
+    saveUsers(users);
+  }
+}
+
+function openApp() {
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  updateInterface();
+  navigateByName("home");
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("authScreen").classList.remove("hidden");
+  document.getElementById("loginPassword").value = "";
+  showLogin();
+}
+
+function currencySymbol() {
+  return currentUser.currency === "USD" ? "$" : "₽";
+}
+
+function formatBalance() {
+  const amount = Number(currentUser.balances[currentUser.currency] || 0);
+  const formatted = amount.toLocaleString(
+    currentUser.currency === "USD" ? "en-US" : "ru-RU",
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+  );
+  return currentUser.currency === "USD"
+    ? "$" + formatted
+    : formatted + " ₽";
+}
+
+function updateInterface() {
+  if (!currentUser) return;
+
+  const name = currentUser.username;
+  const initial = name.charAt(0).toUpperCase();
+
+  document.getElementById("sidebarUsername").textContent = name;
+  document.getElementById("sidebarAvatar").textContent = initial;
+  document.getElementById("profileUsername").textContent = name;
+  document.getElementById("profileAvatar").textContent = initial;
+  document.getElementById("profileId").textContent = currentUser.id;
+
+  document.getElementById("homeUsername").textContent = name;
+  document.getElementById("homeBalance").textContent = formatBalance();
+  document.getElementById("profileBalance").textContent = formatBalance();
+  document.getElementById("topupBalance").textContent = formatBalance();
+
+  document.getElementById("profileCurrency").textContent =
+    currentUser.currency === "USD" ? "USD ($)" : "RUB (₽)";
+
+  document.getElementById("settingsCurrency").value = currentUser.currency;
+  document.getElementById("topupCurrency").value = currentUser.currency;
+  document.getElementById("newUsername").value = currentUser.username;
+}
+
+function navigate(page, button) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + page).classList.add("active");
+
+  document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+  if (button) button.classList.add("active");
+
+  const names = {
+    home: "Главная",
+    market: "Маркет",
+    topup: "Пополнить",
+    profile: "Профиль",
+    settings: "Настройки",
+    about: "О нас"
+  };
+
+  document.getElementById("breadcrumb").textContent =
+    "VORTEX / " + (names[page] || "Главная");
+
+  updateInterface();
+}
+
+function navigateByName(page) {
+  const button = document.querySelector('.nav button[data-page="' + page + '"]');
+  navigate(page, button);
+}
+
+function changeUsername() {
+  const input = document.getElementById("newUsername");
+  const message = document.getElementById("usernameMessage");
+  const newName = input.value.trim();
+
+  if (newName.length < 3 || newName.length > 24) {
+    message.textContent = "Имя должно содержать от 3 до 24 символов.";
+    message.style.color = "#ff8998";
+    return;
+  }
+
+  const users = getUsers();
+  const duplicate = users.some(u =>
+    u.id !== currentUser.id &&
+    u.username.toLowerCase() === newName.toLowerCase()
+  );
+
+  if (duplicate) {
+    message.textContent = "Такое имя уже используется.";
+    message.style.color = "#ff8998";
+    return;
+  }
+
+  currentUser.username = newName;
+  saveCurrentUser();
+  updateInterface();
+
+  message.textContent = "Имя аккаунта успешно изменено.";
+  message.style.color = "#72dfac";
+}
+
+function changeCurrency(currency) {
+  if (!currentUser || !["RUB", "USD"].includes(currency)) return;
+
+  currentUser.currency = currency;
+  saveCurrentUser();
+  updateInterface();
+
+  document.getElementById("topupMessage").textContent = "";
+}
+
+function requestTopup() {
+  const amount = Number(document.getElementById("topupAmount").value);
+  const message = document.getElementById("topupMessage");
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    message.style.color = "#ff8998";
+    message.textContent = "Укажи корректную сумму.";
+    return;
+  }
+
+  message.style.color = "#91baff";
+  message.textContent =
+    "Пополнение пока не подключено. Баланс не изменён.";
+}
+
+function restoreSession() {
+  const sessionId = localStorage.getItem(SESSION_KEY);
+  if (!sessionId) return;
+
+  const user = getUsers().find(u => u.id === sessionId);
+  if (!user) {
+    localStorage.removeItem(SESSION_KEY);
+    return;
+  }
+
+  if (!user.balances) user.balances = { RUB: 0, USD: 0 };
+  if (typeof user.balances.RUB !== "number") user.balances.RUB = 0;
+  if (typeof user.balances.USD !== "number") user.balances.USD = 0;
+  if (!["RUB", "USD"].includes(user.currency)) user.currency = "RUB";
+
+  currentUser = user;
+  saveCurrentUser();
+  openApp();
+}
+
+restoreSession();
+</script>
+</body>
+</html>
