@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Фруктовый Ниндзя — HTML5 игра</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #1c130d;
+      color: #fff3e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    canvas {
+      background: radial-gradient(circle at center, #4e342e 0%, #261812 100%);
+      border: 3px solid #795548;
+      border-radius: 12px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+      touch-action: none;
+      cursor: crosshair;
+      max-width: 95vw;
+    }
+    .info {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #bcaaa4;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="gameCanvas" width="540" height="660"></canvas>
+  <div class="info">Управление: зажмите <b>левую кнопку мыши</b> или проводите <b>пальцем</b>, чтобы резать фрукты</div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const MAX_MISSED = 10;
+
+    const FRUIT_TYPES = Array.of(
+      { name: 'Арбуз', radius: 34, color: '#2e7d32', inner: '#ef5350', points: 10 },
+      { name: 'Апельсин', radius: 26, color: '#fb8c00', inner: '#ffe082', points: 15 },
+      { name: 'Яблоко', radius: 25, color: '#d32f2f', inner: '#fff9c4', points: 15 },
+      { name: 'Лимон', radius: 23, color: '#fbc02d', inner: '#fffde7', points: 20 },
+      { name: 'Слива', radius: 21, color: '#7b1fa2', inner: '#f3e5f5', points: 25 }
+    );
+
+    let fruits = new Array();
+    let halves = new Array();
+    let splashes = new Array();
+    let bladeTrail = new Array();
+
+    let isSlicing = false;
+    let score = 0;
+    let bestScore = parseInt(localStorage.getItem('bestFruitSlice')) || 0;
+    let missedCount = 0;
+    let gameOver = false;
+    let frameCount = 0;
+
+    function initGame() {
+      fruits = new Array();
+      halves = new Array();
+      splashes = new Array();
+      bladeTrail = new Array();
+      score = 0;
+      missedCount = 0;
+      gameOver = false;
+      frameCount = 0;
+    }
+
+    function getPointerPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      if (gameOver) {
+        initGame();
+        return;
+      }
+      isSlicing = true;
+      const pos = getPointerPos(e);
+      bladeTrail = new Array();
+      bladeTrail.push({ x: pos.x, y: pos.y, life: 12 });
+      checkSlice(pos.x, pos.y);
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!isSlicing || gameOver) return;
+      const pos = getPointerPos(e);
+      bladeTrail.push({ x: pos.x, y: pos.y, life: 12 });
+      checkSlice(pos.x, pos.y);
+    });
+
+    window.addEventListener('pointerup', () => {
+      isSlicing = false;
+    });
+
+    function spawnFruit() {
+      const typeIndex = Math.floor(Math.random() * FRUIT_TYPES.length);
+      const spec = FRUIT_TYPES.at(typeIndex);
+      const x = spec.radius + 20 + Math.random() * (canvas.width - spec.radius * 2 - 40);
+      const speed = 2.4 + Math.min(4.2, score * 0.008) + Math.random() * 1.4;
+
+      fruits.push({
+        x: x,
+        y: -spec.radius - 10,
+        vx: (Math.random() - 0.5) * 1.6,
+        vy: speed,
+        radius: spec.radius,
+        color: spec.color,
+        inner: spec.inner,
+        points: spec.points,
+        rot: Math.random() * Math.PI * 2,
+        vRot: (Math.random() - 0.5) * 0.08
+      });
+    }
+
+    function checkSlice(bx, by) {
+      for (let i = fruits.length - 1; i >= 0; i--) {
+        const f = fruits.at(i);
+        const dist = Math.hypot(bx - f.x, by - f.y);
+
+        if (dist <= f.radius + 10) {
+          score += f.points;
+          if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem('bestFruitSlice', bestScore);
+          }
+
+          // Создаем две разлетающиеся половинки
+          halves.push({
+            x: f.x - 6,
+            y: f.y,
+            vx: -3.2 - Math.random() * 2,
+            vy: f.vy * 0.5 - 2,
+            radius: f.radius,
+            color: f.color,
+            inner: f.inner,
+            rot: f.rot,
+            vRot: -0.12,
+            side: 'left'
+          });
+
+          halves.push({
+            x: f.x + 6,
+            y: f.y,
+            vx: 3.2 + Math.random() * 2,
+            vy: f.vy * 0.5 - 2,
+            radius: f.radius,
+            color: f.color,
+            inner: f.inner,
+            rot: f.rot,
+            vRot: 0.12,
+            side: 'right'
+          });
+
+          // Брызги сока
+          for (let s = 0; s < 12; s++) {
+            const angle = Math.random() * Math.PI * 2;
+            const spd = 2 + Math.random() * 4.5;
+            splashes.push({
+              x: f.x,
+              y: f.y,
+              vx: Math.cos(angle) * spd,
+              vy: Math.sin(angle) * spd,
+              size: 3 + Math.random() * 4,
+              color: f.inner,
+              life: 24
+            });
+          }
+
+          fruits.splice(i, 1);
+        }
+      }
+    }
+
+    function update() {
+      if (!gameOver) {
+        frameCount++;
+        const spawnInterval = Math.max(22, 62 - Math.floor(score / 40));
+        if (frameCount % spawnInterval === 0) {
+          spawnFruit();
+        }
+
+        // Движение целых фруктов
+        for (let i = fruits.length - 1; i >= 0; i--) {
+          const f = fruits.at(i);
+          f.x += f.vx;
+          f.y += f.vy;
+          f.rot += f.vRot;
+
+          if (f.x - f.radius < 0 || f.x + f.radius > canvas.width) {
+            f.vx = -f.vx;
+          }
+
+          // Проверка падения за нижнюю границу
+          if (f.y - f.radius > canvas.height) {
+            fruits.splice(i, 1);
+            missedCount++;
+            if (missedCount > MAX_MISSED) {
+              gameOver = true;
+            }
+          }
+        }
+      }
+
+      // Физика разрезанных половинок
+      for (let i = halves.length - 1; i >= 0; i--) {
+        const h = halves.at(i);
+        h.x += h.vx;
+        h.y += h.vy;
+        h.vy += 0.35;
+        h.rot += h.vRot;
+
+        if (h.y > canvas.height + 80) {
+          halves.splice(i, 1);
+        }
+      }
+
+      // Капли сока
+      for (let i = splashes.length - 1; i >= 0; i--) {
+        const sp = splashes.at(i);
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.vy += 0.15;
+        sp.life--;
+        if (sp.life <= 0) splashes.splice(i, 1);
+      }
+
+      // Затухание следа лезвия
+      for (let i = bladeTrail.length - 1; i >= 0; i--) {
+        const pt = bladeTrail.at(i);
+        pt.life--;
+        if (pt.life <= 0) bladeTrail.splice(i, 1);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Декоративные доски на фоне
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.lineWidth = 2;
+      for (let x = 90; x < canvas.width; x += 90) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      // Брызги сока
+      splashes.forEach((sp) => {
+        ctx.fillStyle = sp.color;
+        ctx.globalAlpha = sp.life / 24;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+
+      // Половинки разрезанных фруктов
+      halves.forEach((h) => {
+        ctx.save();
+        ctx.translate(h.x, h.y);
+        ctx.rotate(h.rot);
+
+        const startAngle = h.side === 'left' ? Math.PI * 0.5 : -Math.PI * 0.5;
+        const endAngle = h.side === 'left' ? Math.PI * 1.5 : Math.PI * 0.5;
+
+        ctx.fillStyle = h.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, h.radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = h.inner;
+        ctx.beginPath();
+        ctx.arc(0, 0, h.radius * 0.82, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+      });
+
+      // Целые падающие фрукты
+      fruits.forEach((f) => {
+        ctx.save();
+        ctx.translate(f.x, f.y);
+        ctx.rotate(f.rot);
+
+        ctx.fillStyle = f.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Внутренний круг и блик
+        ctx.fillStyle = f.inner;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.radius * 0.78, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.beginPath();
+        ctx.arc(-f.radius * 0.28, -f.radius * 0.28, f.radius * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      });
+
+      // След от лезвия
+      if (bladeTrail.length > 1) {
+        for (let i = 1; i < bladeTrail.length; i++) {
+          const p1 = bladeTrail.at(i - 1);
+          const p2 = bladeTrail.at(i);
+          ctx.strokeStyle = '#80deea';
+          ctx.lineWidth = (p2.life / 12) * 8;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      }
+
+      // Верхняя панель счета и счетчик пропусков
+      ctx.fillStyle = 'rgba(28, 19, 13, 0.75)';
+      ctx.fillRect(0, 0, canvas.width, 52);
+
+      ctx.fillStyle = '#ffe082';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Очки: ' + score, 16, 33);
+
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = '#bcaaa4';
+      ctx.fillText('Рекорд: ' + bestScore, 155, 32);
+
+      ctx.textAlign = 'right';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillStyle = missedCount >= 8 ? '#ff5252' : '#ffffff';
+      ctx.fillText('Упало: ' + missedCount + ' / ' + MAX_MISSED, canvas.width - 16, 33);
+// Экран проигрыша
+if (gameOver) {
+ctx.fillStyle = 'rgba(28, 19, 13, 0.86)';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ff5252';
+ctx.font = 'bold 34px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText('УПАЛО БОЛЬШЕ 10 ФРУКТОВ!', canvas.width / 2, canvas.height / 2 - 40);
+ctx.fillStyle = '#ffe082';
+ctx.font = 'bold 24px sans-serif';
+ctx.fillText('Ваш счёт: ' + score, canvas.width / 2, canvas.height / 2 + 10);
+ctx.fillStyle = '#bcaaa4';
+ctx.font = '18px sans-serif';
+ctx.fillText('Лучший рекорд: ' + bestScore, canvas.width / 2, canvas.height / 2 + 45);
+ctx.fillStyle = '#80deea';
+ctx.font = '16px sans-serif';
+ctx.fillText('Кликните по экрану, чтобы сыграть снова', canvas.width / 2, canvas.height / 2 + 95);
+}
+}
+function loop() {
+update();
+draw();
+requestAnimationFrame(loop);
+}
+initGame();
+loop();
+</script>
+</body>
+</html>

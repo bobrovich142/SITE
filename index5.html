@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Дровосек (Timberman) — HTML5 игра</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #1e272e;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    canvas {
+      background: linear-gradient(180deg, #74b9ff 0%, #dff9fb 100%);
+      border: 3px solid #2f3640;
+      border-radius: 12px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+      touch-action: none;
+      max-width: 95vw;
+    }
+    .info {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #d2dae2;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="gameCanvas" width="440" height="660"></canvas>
+  <div class="info">Управление: <b>← / →</b>, <b>A / D</b> или <b>клик/тап</b> по левой/правой стороне экрана</div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const TRUNK_WIDTH = 96;
+    const LOG_HEIGHT = 76;
+    const VISIBLE_LOGS = 9;
+    const GROUND_Y = canvas.height - 65;
+
+    let tree = new Array();
+    let flyingLogs = new Array();
+    let playerSide = 'left';
+    let score = 0;
+    let bestScore = parseInt(localStorage.getItem('bestTimberman')) || 0;
+    let gameOver = false;
+    let started = false;
+    let chopAnim = 0;
+    let sinkOffset = 0; // Насколько дерево ушло под землю
+    let emptyStreak = 0; // Счетчик пустых блоков подряд
+
+    function initGame() {
+      tree = new Array();
+      flyingLogs = new Array();
+      playerSide = 'left';
+      score = 0;
+      gameOver = false;
+      started = false;
+      chopAnim = 0;
+      sinkOffset = 0;
+      emptyStreak = 0;
+
+      // Безопасный старт: первые 2 блока без веток
+      tree.push('none');
+      tree.push('none');
+
+      for (let i = 2; i < VISIBLE_LOGS + 3; i++) {
+        addTreeSegment();
+      }
+    }
+
+    function addTreeSegment() {
+      const prev = tree.at(tree.length - 1);
+
+      // Если на прошлом бревне была ветка — делаем ровно 1 пустой блок для перебежки
+      if (prev !== 'none') {
+        tree.push('none');
+        emptyStreak = 1;
+        return;
+      }
+
+      // Не более 3 пустых блоков подряд: если уже было 2 пустых, принудительно ставим ветку
+      if (emptyStreak >= 2) {
+        const side = Math.random() < 0.5 ? 'left' : 'right';
+        tree.push(side);
+        emptyStreak = 0;
+      } else {
+        const r = Math.random();
+        if (r < 0.35) {
+          tree.push('left');
+          emptyStreak = 0;
+        } else if (r < 0.70) {
+          tree.push('right');
+          emptyStreak = 0;
+        } else {
+          tree.push('none');
+          emptyStreak++;
+        }
+      }
+    }
+
+    function cutBottomLog() {
+      const cutBranch = tree.shift();
+      flyingLogs.push({
+        x: canvas.width / 2 - TRUNK_WIDTH / 2,
+        y: GROUND_Y - LOG_HEIGHT + sinkOffset,
+        vx: playerSide === 'left' ? 11 : -11,
+        vy: -5,
+        rot: 0,
+        vRot: playerSide === 'left' ? 0.18 : -0.18,
+        branch: cutBranch
+      });
+      addTreeSegment();
+      score++;
+    }
+
+    function chop(side) {
+      if (gameOver) {
+        initGame();
+        return;
+      }
+
+      started = true;
+      playerSide = side;
+      chopAnim = 6;
+
+      // Проверяем столкновение с нижней веткой при переходе
+      if (tree.at(0) === playerSide && sinkOffset < LOG_HEIGHT * 0.7) {
+        endGame();
+        return;
+      }
+
+      // Удар ускоряет уход дерева под землю и срубает текущий блок
+      sinkOffset += LOG_HEIGHT * 0.55;
+      while (sinkOffset >= LOG_HEIGHT) {
+        sinkOffset -= LOG_HEIGHT;
+        cutBottomLog();
+      }
+
+      // Проверяем, не опустилась ли следующая ветка на уровень головы
+      if (tree.at(0) === playerSide && sinkOffset > 12) {
+        endGame();
+      }
+    }
+
+    function endGame() {
+      gameOver = true;
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('bestTimberman', bestScore);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (gameOver && e.code === 'Space') {
+        initGame();
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A' || e.key === 'ф' || e.key === 'Ф') {
+        chop('left');
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D' || e.key === 'в' || e.key === 'В') {
+        chop('right');
+      }
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+      if (gameOver) {
+        initGame();
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      if (clickX < rect.width / 2) {
+        chop('left');
+      } else {
+        chop('right');
+      }
+    });
+
+    function update() {
+      if (chopAnim > 0) chopAnim--;
+
+      // Дерево само плавно уходит под землю после первого удара
+      if (started && !gameOver) {
+        const sinkSpeed = 1.4 + Math.min(3.5, score * 0.025);
+        sinkOffset += sinkSpeed;
+
+        while (sinkOffset >= LOG_HEIGHT) {
+          sinkOffset -= LOG_HEIGHT;
+          cutBottomLog();
+        }
+
+        // Если ветка опустилась до уровня дровосека — проигрыш
+        if (tree.at(0) === playerSide && sinkOffset > 16) {
+          endGame();
+        }
+      }
+
+      // Анимация улетающих срубленных чурбаков
+      for (let i = flyingLogs.length - 1; i >= 0; i--) {
+        const log = flyingLogs.at(i);
+        log.x += log.vx;
+        log.y += log.vy;
+        log.vy += 0.65;
+        log.rot += log.vRot;
+
+        if (log.y > canvas.height + 100) {
+          flyingLogs.splice(i, 1);
+        }
+      }
+    }
+
+    function drawLog(x, y, branch, isDark) {
+      ctx.fillStyle = isDark ? '#784212' : '#8e521b';
+      ctx.fillRect(x, y, TRUNK_WIDTH, LOG_HEIGHT);
+
+      ctx.fillStyle = isDark ? '#63350d' : '#784212';
+      ctx.fillRect(x + 14, y + 8, 8, LOG_HEIGHT - 16);
+      ctx.fillRect(x + TRUNK_WIDTH - 24, y + 14, 6, LOG_HEIGHT - 28);
+
+      if (branch === 'left') {
+        ctx.fillStyle = '#6e3b10';
+        ctx.fillRect(x - 105, y + LOG_HEIGHT / 2 - 10, 105, 20);
+        ctx.fillStyle = '#27ae60';
+        ctx.beginPath();
+        ctx.roundRect(x - 120, y + LOG_HEIGHT / 2 - 22, 75, 44, 14);
+        ctx.fill();
+      } else if (branch === 'right') {
+        ctx.fillStyle = '#6e3b10';
+        ctx.fillRect(x + TRUNK_WIDTH, y + LOG_HEIGHT / 2 - 10, 105, 20);
+        ctx.fillStyle = '#27ae60';
+        ctx.beginPath();
+        ctx.roundRect(x + TRUNK_WIDTH + 45, y + LOG_HEIGHT / 2 - 22, 75, 44, 14);
+        ctx.fill();
+      }
+    }
+
+    function drawPlayer() {
+      const centerX = canvas.width / 2;
+      const px = playerSide === 'left' ? centerX - TRUNK_WIDTH / 2 - 48 : centerX + TRUNK_WIDTH / 2 + 48;
+      const py = GROUND_Y - 58;
+
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.roundRect(px - 18, py + 18, 36, 40, 8);
+      ctx.fill();
+
+      ctx.fillStyle = '#f5cba7';
+      ctx.beginPath();
+      ctx.arc(px, py + 8, 15, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#2c3e50';
+      ctx.beginPath();
+      ctx.arc(px, py + 4, 15, Math.PI, 0);
+      ctx.fill();
+
+      ctx.save();
+      ctx.translate(px, py + 32);
+      const dir = playerSide === 'left' ? 1 : -1;
+      const swingAngle = chopAnim > 0 ? dir * 0.6 : -dir * 0.5;
+      ctx.rotate(swingAngle);
+
+      ctx.fillStyle = '#d35400';
+      ctx.fillRect(0, -4, dir * 42, 7);
+
+      ctx.fillStyle = '#bdc3c7';
+      ctx.beginPath();
+      ctx.moveTo(dir * 32, -14);
+      ctx.lineTo(dir * 46, -14);
+      ctx.lineTo(dir * 46, 12);
+      ctx.lineTo(dir * 32, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Облака
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.beginPath();
+      ctx.arc(90, 110, 28, 0, Math.PI * 2);
+      ctx.arc(120, 105, 34, 0, Math.PI * 2);
+      ctx.arc(150, 112, 25, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(310, 170, 24, 0, Math.PI * 2);
+      ctx.arc(340, 165, 30, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Отрисовка ствола (с учетом погружения под землю)
+      const trunkX = canvas.width / 2 - TRUNK_WIDTH / 2;
+      for (let i = 0; i < VISIBLE_LOGS; i++) {
+        const y = GROUND_Y - (i + 1) * LOG_HEIGHT + sinkOffset;
+        const isDark = (score + i) % 2 === 1;
+        drawLog(trunkX, y, tree.at(i), isDark);
+      }
+
+      // Земля и трава рисуются ПОВЕРХ нижней части ствола, чтобы ствол уходил в землю
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(0, GROUND_Y, canvas.width, 18);
+      ctx.fillStyle = '#795548';
+      ctx.fillRect(0, GROUND_Y + 18, canvas.width, canvas.height - GROUND_Y);
+
+      // Улетающие бревна
+      flyingLogs.forEach((log) => {
+        ctx.save();
+        ctx.translate(log.x + TRUNK_WIDTH / 2, log.y + LOG_HEIGHT / 2);
+        ctx.rotate(log.rot);
+        drawLog(-TRUNK_WIDTH / 2, -LOG_HEIGHT / 2, log.branch, false);
+        ctx.restore();
+      });
+
+      // Игрок
+      drawPlayer();
+
+      // Счет
+      ctx.fillStyle = '#2c3e50';
+      ctx.font = 'bold 46px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(score, canvas.width / 2, 75);
+
+      if (!started && !gameOver) {
+        ctx.fillStyle = 'rgba(44, 62, 80, 0.85)';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('Нажмите ← или → чтобы начать!', canvas.width / 2, 110);
+      }
+
+      // Экран проигрыша
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(30, 39, 46, 0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ff7675';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillText('ВАС ПРИДАВИЛО!', canvas.width / 2, canvas.height / 2 - 45);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText('Счёт: ' + score, canvas.width / 2, canvas.height / 2 + 5);
+
+        ctx.fillStyle = '#ffeaa7';
+        ctx.font = '18px sans-serif';
+        ctx.fillText('Лучший рекорд: ' + bestScore, canvas.width / 2, canvas.height / 2 + 40);
+
+        ctx.fillStyle = '#55efc4';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Нажмите Пробел или кликните для рестарта', canvas.width / 2, canvas.height / 2 + 90);
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    initGame();
+    loop();
+  </script>
+</body>
+</html>

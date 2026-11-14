@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Зомби Мост — HTML5 игра</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #11161d;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    canvas {
+      background: #232b35;
+      border: 3px solid #3a4756;
+      border-radius: 12px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+      touch-action: none;
+      max-width: 95vw;
+    }
+    .info {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #9aa7b8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="gameCanvas" width="540" height="680"></canvas>
+  <div class="info">Управление: <b>← / →</b>, <b>A / D</b> или <b>клик/тап</b> по нужной дорожке</div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const LANES = 3;
+    const LANE_WIDTH = canvas.width / LANES;
+    const PLAYER_Y = canvas.height - 95;
+
+    const WEAPONS = [
+      { name: 'Пистолет', rate: 80, damage: 1, spread: 1, color: '#ffeaa7' },
+      { name: 'ПП', rate: 80, damage: 1, spread: 1, color: '#74b9ff' },
+      { name: 'Дробовик', rate: 80, damage: 1, spread: 1, color: '#ff7675' },
+      { name: 'Плазмаган', rate: 80, damage: 1, spread: 1, color: '#a29bfe' }
+    ];
+
+    let currentLane = 1;
+    let playerX = currentLane * LANE_WIDTH + LANE_WIDTH / 2;
+    let squadSize = 1;
+    let bulletDamageBonus = 0;
+    let weaponIndex = 0;
+    let score = 0;
+    let gameOver = false;
+    let frameCount = 0;
+    let roadOffset = 0;
+
+    let bullets = [];
+    let entities = [];
+
+    function resetGame() {
+      currentLane = 1;
+      playerX = currentLane * LANE_WIDTH + LANE_WIDTH / 2;
+      squadSize = 1;
+      bulletDamageBonus = 0;
+      weaponIndex = 0;
+      score = 0;
+      gameOver = false;
+      frameCount = 0;
+      bullets = [];
+      entities = [];
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (gameOver && e.code === 'Space') {
+        resetGame();
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A' || e.key === 'ф' || e.key === 'Ф') {
+        currentLane = Math.max(0, currentLane - 1);
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D' || e.key === 'в' || e.key === 'В') {
+        currentLane = Math.min(LANES - 1, currentLane + 1);
+      }
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+      if (gameOver) {
+        resetGame();
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickedLane = Math.floor(clickX / (rect.width / LANES));
+      currentLane = Math.max(0, Math.min(LANES - 1, clickedLane));
+    });
+
+   function spawnRow() {
+      const tensLevel = Math.floor(score / 10);
+      const roles = Array.of(0, 1, 2).sort(() => Math.random() - 0.5);
+
+      roles.forEach((role, lane) => {
+        if (role === 0) {
+          const count = Math.min(3, 1 + Math.floor(Math.random() * 2));
+          for (let i = 0; i < count; i++) {
+            const baseHp = 3 + tensLevel * 2;
+            const hp = Math.ceil(baseHp * (0.9 + Math.random() * 0.4));
+            entities.push({
+              type: 'zombie',
+              lane: lane,
+              y: -50 - i * 48,
+              hp: hp,
+              maxHp: hp,
+              speed: 1.9 + Math.min(2.5, tensLevel * 0.05)
+            });
+          }
+        } else if (role === 1) {
+          const isSquadBoost = Math.random() > 0.45;
+          if (isSquadBoost) {
+            const isDouble = Math.random() > 0.65 && squadSize < 16;
+            entities.push({
+              type: 'gate',
+              subType: isDouble ? 'x2' : '+1',
+              label: isDouble ? 'x2 БОЙЦА' : '+1 БОЕЦ',
+              color: '#00b894',
+              lane: lane,
+              y: -45,
+              hp: 5,
+              speed: 2.2
+            });
+          } else {
+            entities.push({
+              type: 'gate',
+              subType: 'bullet',
+              label: '+1 УРОН ПУЛЬ',
+              color: '#0984e3',
+              lane: lane,
+              y: -45,
+              hp: 5,
+              speed: 2.2
+            });
+          }
+        } else if (role === 2) {
+          const canUpgradeWeapon = weaponIndex < WEAPONS.length - 1;
+          if (canUpgradeWeapon && Math.random() > 0.35) {
+            const nextWeapon = WEAPONS.at(weaponIndex + 1);
+            entities.push({
+              type: 'gate',
+              subType: 'weapon',
+              label: 'ОРУЖИЕ: ' + nextWeapon.name,
+              color: '#e17055',
+              lane: lane,
+              y: -45,
+              hp: 8,
+              speed: 2.2
+            });
+          } else {
+            entities.push({
+              type: 'gate',
+              subType: 'bullet',
+              label: '+2 УРОН ПУЛЬ',
+              color: '#6c5ce7',
+              lane: lane,
+              y: -45,
+              hp: 6,
+              speed: 2.2
+            });
+          }
+        }
+      });
+    }
+
+    function shoot() {
+      const weapon = WEAPONS[weaponIndex];
+      const totalDamage = weapon.damage + bulletDamageBonus;
+      const activeShooters = Math.min(squadSize, 8);
+      const powerMultiplier = squadSize / activeShooters;
+
+      for (let s = 0; s < activeShooters; s++) {
+        const offsetX = (s - (activeShooters - 1) / 2) * 12;
+        for (let p = 0; p < weapon.spread; p++) {
+          const spreadAngle = (p - (weapon.spread - 1) / 2) * 0.12;
+          bullets.push({
+            x: playerX + offsetX,
+            y: PLAYER_Y - 15,
+            vx: Math.sin(spreadAngle) * 4,
+            vy: -11,
+            damage: totalDamage * powerMultiplier,
+            color: weapon.color
+          });
+        }
+      }
+    }
+
+    function update() {
+      if (gameOver) return;
+      frameCount++;
+
+      const targetX = currentLane * LANE_WIDTH + LANE_WIDTH / 2;
+      playerX += (targetX - playerX) * 0.22;
+
+      roadOffset = (roadOffset + 3) % 40;
+
+      if (frameCount % 145 === 10) {
+        spawnRow();
+      }
+
+      const weapon = WEAPONS[weaponIndex];
+      if (frameCount % weapon.rate === 0) {
+        shoot();
+      }
+
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.y < -20) bullets.splice(i, 1);
+      }
+
+      for (let i = entities.length - 1; i >= 0; i--) {
+        const ent = entities[i];
+        ent.y += ent.speed;
+        const entX = ent.lane * LANE_WIDTH + LANE_WIDTH / 2;
+
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          const hitWidth = ent.type === 'gate' ? LANE_WIDTH * 0.45 : 30;
+          if (Math.abs(b.x - entX) < hitWidth && Math.abs(b.y - ent.y) < 22) {
+            bullets.splice(j, 1);
+            if (ent.type === 'zombie') {
+              ent.hp -= b.damage;
+              if (ent.hp <= 0) {
+                score += 10;
+                entities.splice(i, 1);
+              }
+            } else if (ent.type === 'gate') {
+              ent.hp -= 1;
+              if (ent.hp <= 0) {
+                ent.hp = 6;
+                if (ent.subType === '+1') {
+                  const num = parseInt(ent.label.replace(/\D/g, '')) || 1;
+                  ent.label = `+${num + 1} БОЙЦА`;
+                } else if (ent.subType === 'bullet') {
+                  const num = parseInt(ent.label.replace(/\D/g, '')) || 1;
+                  ent.label = `+${num + 1} УРОН ПУЛЬ`;
+                }
+              }
+            }
+            break;
+          }
+        }
+
+        if (!entities[i]) continue;
+
+        if (Math.abs(ent.y - PLAYER_Y) < 28 && ent.lane === currentLane) {
+          if (ent.type === 'zombie') {
+            squadSize -= 1;
+            entities.splice(i, 1);
+            if (squadSize <= 0) {
+              gameOver = true;
+            }
+          } else if (ent.type === 'gate') {
+            applyGateEffect(ent);
+            entities.splice(i, 1);
+          }
+          continue;
+        }
+
+        if (ent.y > canvas.height + 50) {
+          entities.splice(i, 1);
+        }
+      }
+    }
+
+    function applyGateEffect(gate) {
+      score += 15;
+      if (gate.subType === 'x2') {
+        squadSize = Math.min(30, squadSize * 2);
+      } else if (gate.subType === '+1') {
+        const num = parseInt(gate.label.replace(/\D/g, '')) || 1;
+        squadSize = Math.min(30, squadSize + num);
+      } else if (gate.subType === 'bullet') {
+        const num = parseInt(gate.label.replace(/\D/g, '')) || 1;
+        bulletDamageBonus += num * 0.5;
+      } else if (gate.subType === 'weapon') {
+        weaponIndex = Math.min(WEAPONS.length - 1, weaponIndex + 1);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([20, 20]);
+      ctx.lineDashOffset = -roadOffset;
+
+      for (let i = 1; i < LANES; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * LANE_WIDTH, 0);
+        ctx.lineTo(i * LANE_WIDTH, canvas.height);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // Отрисовка ворот и зомби
+      entities.forEach((ent) => {
+        const cx = ent.lane * LANE_WIDTH + LANE_WIDTH / 2;
+
+        if (ent.type === 'gate') {
+          const w = LANE_WIDTH - 20;
+          const h = 48;
+          ctx.fillStyle = ent.color;
+          ctx.globalAlpha = 0.85;
+          ctx.beginPath();
+          ctx.roundRect(cx - w / 2, ent.y - h / 2, w, h, 8);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 14px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText(ent.label, cx, ent.y + 5);
+} else if (ent.type === 'zombie') {
+ctx.fillStyle = '#55efc4';
+ctx.beginPath();
+ctx.arc(cx, ent.y, 18, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#d63031';
+ctx.beginPath();
+ctx.arc(cx - 6, ent.y - 4, 3, 0, Math.PI * 2);
+ctx.arc(cx + 6, ent.y - 4, 3, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#000000';
+ctx.fillRect(cx - 20, ent.y - 30, 40, 6);
+ctx.fillStyle = '#ff7675';
+ctx.fillRect(cx - 20, ent.y - 30, 40 * Math.max(0, ent.hp / ent.maxHp), 6);
+ctx.fillStyle = '#ffffff';
+ctx.font = 'bold 12px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText(Math.ceil(ent.hp), cx, ent.y - 34);
+}
+});
+// Отрисовка пуль
+bullets.forEach((b) => {
+ctx.fillStyle = b.color;
+ctx.beginPath();
+ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+ctx.fill();
+});
+// Отрисовка отряда игрока
+const visibleSoldiers = Math.min(squadSize, 12);
+for (let i = 0; i < visibleSoldiers; i++) {
+const angle = (i / visibleSoldiers) * Math.PI * 2;
+const radius = i === 0 ? 0 : 14 + Math.floor(i / 6) * 12;
+const sx = playerX + Math.cos(angle) * radius;
+const sy = PLAYER_Y + Math.sin(angle) * radius * 0.6;
+ctx.fillStyle = '#0984e3';
+ctx.beginPath();
+ctx.arc(sx, sy, 11, 0, Math.PI * 2);
+ctx.fill();
+ctx.strokeStyle = '#74b9ff';
+ctx.lineWidth = 2;
+ctx.stroke();
+}
+// Счетчик бойцов над отрядом
+ctx.fillStyle = '#ffeaa7';
+ctx.font = 'bold 16px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText(`Отряд: ${squadSize}`, playerX, PLAYER_Y + 34);
+// Верхняя панель статуса
+ctx.fillStyle = 'rgba(17, 22, 29, 0.85)';
+ctx.fillRect(0, 0, canvas.width, 44);
+ctx.fillStyle = '#ffffff';
+ctx.font = 'bold 15px sans-serif';
+ctx.textAlign = 'left';
+ctx.fillText(`Очки: ${score}`, 14, 27);
+ctx.textAlign = 'right';
+ctx.fillStyle = '#74b9ff';
+ctx.fillText(`${WEAPONS[weaponIndex].name} (+${bulletDamageBonus.toFixed(1)})`, canvas.width - 14, 27);
+// Экран проигрыша
+if (gameOver) {
+ctx.fillStyle = 'rgba(17, 22, 29, 0.85)';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ff7675';
+ctx.font = 'bold 34px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText('ОТРЯД ПОГИБ', canvas.width / 2, canvas.height / 2 - 20);
+ctx.fillStyle = '#ffffff';
+ctx.font = '20px sans-serif';
+ctx.fillText(`Итоговый счёт: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+ctx.fillStyle = '#55efc4';
+ctx.font = '16px sans-serif';
+ctx.fillText('Нажмите Пробел или кликните для рестарта', canvas.width / 2, canvas.height / 2 + 65);
+}
+}
+function loop() {
+update();
+draw();
+requestAnimationFrame(loop);
+}
+loop();
+  </script>
+</body>
+</html>
+loop();

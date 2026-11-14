@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Строитель Башни — HTML5 игра</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #12121f;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    canvas {
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+      border: 2px solid #30475e;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+    }
+    .controls {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #9ba4b4;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div class="controls">Управление: <b>Клик мышью</b>, <b>Тап по экрану</b> или <b>Пробел</b></div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const BLOCK_HEIGHT = 28;
+    const INITIAL_WIDTH = 220;
+    const BASE_Y = 520;
+
+    let stack = [];
+    let debris = [];
+    let currentBlock = null;
+    let score = 0;
+    let highScore = 0;
+    let gameOver = false;
+    let cameraY = 0;
+    let targetCameraY = 0;
+    let hue = 0;
+
+    function getColor(index) {
+      return `hsl(${(hue + index * 12) % 360}, 75%, 58%)`;
+    }
+
+    function initGame() {
+      score = 0;
+      gameOver = false;
+      cameraY = 0;
+      targetCameraY = 0;
+      debris = [];
+      hue = Math.floor(Math.random() * 360);
+
+      // Фундамент башни
+      stack = [{
+        x: (canvas.width - INITIAL_WIDTH) / 2,
+        y: BASE_Y,
+        width: INITIAL_WIDTH,
+        color: getColor(0)
+      }];
+
+      spawnNextBlock();
+    }
+
+    function spawnNextBlock() {
+      const prevBlock = stack[stack.length - 1];
+      const speed = Math.min(8, 3.2 + score * 0.15);
+      const fromLeft = score % 2 === 0;
+
+      currentBlock = {
+        x: fromLeft ? -prevBlock.width : canvas.width,
+        y: prevBlock.y - BLOCK_HEIGHT,
+        width: prevBlock.width,
+        speed: fromLeft ? speed : -speed,
+        color: getColor(stack.length)
+      };
+
+      // Сдвигаем камеру вверх, когда башня растет
+      if (stack.length > 8) {
+        targetCameraY = (stack.length - 8) * BLOCK_HEIGHT;
+      }
+    }
+
+    function placeBlock() {
+      if (gameOver) {
+        initGame();
+        return;
+      }
+
+      const prevBlock = stack[stack.length - 1];
+      const delta = currentBlock.x - prevBlock.x;
+      const absDelta = Math.abs(delta);
+
+      // Полный промах
+      if (absDelta >= prevBlock.width) {
+        debris.push({
+          x: currentBlock.x,
+          y: currentBlock.y,
+          width: currentBlock.width,
+          vy: 0,
+          vx: delta > 0 ? 2 : -2,
+          color: currentBlock.color
+        });
+        currentBlock = null;
+        gameOver = true;
+        if (score > highScore) highScore = score;
+        return;
+      }
+
+      // Идеальное попадание (допуск 3 пикселя для приятного геймплея)
+      if (absDelta <= 3) {
+        currentBlock.x = prevBlock.x;
+      } else {
+        // Обрезаем свисающий край
+        const cutWidth = absDelta;
+        const newWidth = prevBlock.width - cutWidth;
+
+        let debrisX;
+        if (delta > 0) {
+          // Сдвиг вправо — отрезаем правый край
+          debrisX = currentBlock.x + newWidth;
+        } else {
+          // Сдвиг влево — отрезаем левый край
+          debrisX = currentBlock.x;
+          currentBlock.x = prevBlock.x;
+        }
+
+        currentBlock.width = newWidth;
+
+        // Добавляем отрезанный кусок в падающие обломки
+        debris.push({
+          x: debrisX,
+          y: currentBlock.y,
+          width: cutWidth,
+          vy: 0,
+          vx: delta > 0 ? 1.5 : -1.5,
+          color: currentBlock.color
+        });
+      }
+
+      stack.push(currentBlock);
+      score++;
+      spawnNextBlock();
+    }
+
+    // Управление (мышь, тач, клавиатура)
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      placeBlock();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowDown' || e.code === 'Enter') {
+        e.preventDefault();
+        placeBlock();
+      }
+    });
+
+    function update() {
+      // Плавное движение камеры вверх
+      cameraY += (targetCameraY - cameraY) * 0.1;
+
+      // Движение активного блока
+      if (currentBlock && !gameOver) {
+        currentBlock.x += currentBlock.speed;
+        if (currentBlock.x + currentBlock.width > canvas.width + 40) {
+          currentBlock.speed = -Math.abs(currentBlock.speed);
+        } else if (currentBlock.x < -40) {
+          currentBlock.speed = Math.abs(currentBlock.speed);
+        }
+      }
+
+      // Физика падения отрезанных кусков
+      for (let i = debris.length - 1; i >= 0; i--) {
+        const d = debris[i];
+        d.vy += 0.5; // Гравитация
+        d.y += d.vy;
+        d.x += d.vx;
+
+        if (d.y - cameraY > canvas.height + 50) {
+          debris.splice(i, 1);
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(0, cameraY);
+
+      // Отрисовка построенной башни
+      stack.forEach((block) => {
+        ctx.fillStyle = block.color;
+        ctx.fillRect(block.x, block.y, block.width, BLOCK_HEIGHT);
+        
+        // Легкая тень снизу блока для объема
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(block.x, block.y + BLOCK_HEIGHT - 4, block.width, 4);
+      });
+
+      // Отрисовка движущегося блока
+      if (currentBlock) {
+        ctx.fillStyle = currentBlock.color;
+        ctx.fillRect(currentBlock.x, currentBlock.y, currentBlock.width, BLOCK_HEIGHT);
+      }
+
+      // Отрисовка отрезанных кусков
+      debris.forEach((d) => {
+        ctx.fillStyle = d.color;
+        ctx.fillRect(d.x, d.y, d.width, BLOCK_HEIGHT);
+      });
+
+      ctx.restore();
+
+      // Счет поверх экрана
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(score, canvas.width / 2, 75);
+
+      ctx.font = '15px sans-serif';
+      ctx.fillStyle = '#9ba4b4';
+      ctx.fillText(`Рекорд: ${highScore}`, canvas.width / 2, 100);
+
+      // Экран окончания игры
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(18, 18, 31, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ff5252';
+        ctx.font = 'bold 34px sans-serif';
+        ctx.fillText('БАШНЯ РУХНУЛА', canvas.width / 2, canvas.height / 2 - 20);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '20px sans-serif';
+        ctx.fillText(`Этажей построено: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+
+        ctx.fillStyle = '#4cd137';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Нажмите Пробел или кликните для рестарта', canvas.width / 2, canvas.height / 2 + 65);
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    initGame();
+    loop();
+  </script>
+</body>
+</html>
